@@ -86,6 +86,9 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 means initial "Ready?" screen
   const [userAnswers, setUserAnswers] = useState<string[]>(new Array(5).fill(""));
   const [fallingElements, setFallingElements] = useState<{ id: number; left: number; duration: number; size: number; type: 'heart' | 'sparkle' }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const QUESTIONS = [
     "مستعدة تسمعي حاجه من قلبي بجد؟",
@@ -196,14 +199,30 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = (file: File) => {
     if (file) {
+      if (!file.type.startsWith('audio/')) {
+        alert("يا جنات لازم ترفعي ملف صوتي بس ❤️");
+        return;
+      }
+      
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(progressInterval);
+            return 95;
+          }
+          return prev + 5;
+        });
+      }, 100);
+
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setIsPlaying(false);
-
+      
       // Save to IndexedDB
       const request = indexedDB.open('AppAudioDB', 1);
       request.onsuccess = (event: any) => {
@@ -211,9 +230,36 @@ export default function App() {
         const transaction = db.transaction(['audio'], 'readwrite');
         const store = transaction.objectStore('audio');
         store.put(file, 'current_track');
-        localStorage.removeItem('persistent_audio_url'); // Prefer IDB over link if both exist
+        localStorage.removeItem('persistent_audio_url'); 
+        
+        setTimeout(() => {
+          clearInterval(progressInterval);
+          setUploadProgress(100);
+          setAudioUrl(url);
+          setIsPlaying(false);
+          setTimeout(() => {
+            setIsUploading(false);
+            setUploadProgress(0);
+          }, 500);
+        }, 1000);
       };
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
   };
 
   const saveDirectLink = (url: string) => {
@@ -507,15 +553,18 @@ export default function App() {
 
               <div className="grid grid-cols-1 gap-12">
                 {/* Music Section */}
-                <div className="bg-white/80 border-2 border-love-100 p-8 rounded-[3rem] shadow-2xl">
-                  <h3 className="text-3xl text-love-600 mb-6 font-bold text-center">أغنيتنا المفضلة 🎵</h3>
-                  {audioUrl ? (
-                    <div className="flex flex-col items-center gap-6">
+                <div className="bg-white/80 border-2 border-love-100 p-8 rounded-[3rem] shadow-2xl overflow-hidden relative">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-love-50 rounded-full blur-[50px] -mr-16 -mt-16 opacity-50" />
+                  
+                  <h3 className="text-3xl text-love-600 mb-8 font-bold text-center relative z-10">أغنيتنا المفضلة 🎵</h3>
+                  
+                  <div className="flex flex-col items-center gap-8 relative z-10">
+                    {audioUrl && !isUploading && (
                       <motion.button 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={togglePlay}
-                        className="w-48 h-48 rounded-full bg-love-500 text-white flex items-center justify-center shadow-2xl relative"
+                        className="w-48 h-48 rounded-full bg-love-500 text-white flex items-center justify-center shadow-2xl relative group"
                       >
                          <AnimatePresence>
                            {isPlaying && (
@@ -528,53 +577,88 @@ export default function App() {
                            )}
                          </AnimatePresence>
                          {isPlaying ? <Pause size={64} /> : <Play size={64} className="mr-2" />}
+                         
+                         <div className="absolute -bottom-4 bg-white/90 backdrop-blur px-4 py-1 rounded-full border border-love-100 shadow-md transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+                            <span className="text-love-500 text-xs font-bold">شغلي الموسيقى ❤️</span>
+                         </div>
                       </motion.button>
-                      <div className="flex gap-4 mt-4">
+                    )}
+
+                    <div 
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`w-full transition-all duration-300 relative ${isUploading ? 'opacity-100' : ''}`}
+                    >
+                      {isUploading ? (
+                        <div className="w-full flex flex-col items-center gap-4 py-10">
+                          <Loader2 className="w-12 h-12 text-love-500 animate-spin" />
+                          <div className="w-full max-w-sm h-3 bg-love-100 rounded-full overflow-hidden shadow-inner">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${uploadProgress}%` }}
+                              className="h-full bg-love-500"
+                            />
+                          </div>
+                          <p className="text-love-600 font-bold animate-pulse">بيتم تجهيز المفاجأة... {uploadProgress}%</p>
+                        </div>
+                      ) : (
+                        <label 
+                          className={`flex flex-col items-center gap-6 cursor-pointer p-12 border-4 border-dashed rounded-[2.5rem] transition-all relative overflow-hidden group
+                            ${isDragging ? 'border-love-500 bg-love-50 scale-[1.02]' : 'border-love-100 hover:bg-love-50/50 hover:border-love-300'}
+                          `}
+                        >
+                          <div className={`absolute inset-0 bg-love-500/5 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`} />
+                          
+                          <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className={`p-6 rounded-full bg-love-50 transition-transform duration-500 ${isDragging ? 'scale-110 rotate-12' : 'group-hover:scale-110'}`}>
+                              <Upload size={48} className="text-love-400" />
+                            </div>
+                            <div className="mt-6 space-y-2">
+                              <p className="text-2xl font-bold text-rose-900 leading-relaxed">
+                                {isDragging ? 'سيبي الملف هنا يا جنات ✨' : 'اسحبي أغنيتنا هنا أو اضغطي ترفعيها'}
+                              </p>
+                              <p className="text-sm text-love-400/80 font-medium">بندعم كل أنواع ملفات الـ MP3 والموسيقى</p>
+                            </div>
+                          </div>
+                          
+                          <input 
+                            type="file" 
+                            accept="audio/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(file);
+                            }} 
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {!isUploading && (
+                      <div className="w-full flex flex-col gap-4">
+                        <div className="flex items-center gap-4 px-4">
+                          <div className="h-px bg-love-100 flex-1" />
+                          <span className="text-love-300 font-bold text-sm tracking-widest uppercase px-2">أو</span>
+                          <div className="h-px bg-love-100 flex-1" />
+                        </div>
+                        
                         <button 
                           onClick={() => {
-                            const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان متتمسحش بعد الريفرش:", audioUrl || "");
+                            const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان تفضل موجودة دايماً:");
                             if (url !== null && url.trim() !== "") {
+                              saveDirectLink(url);
                               updateGlobalSetting('audioUrl', url);
                             }
                           }}
-                          className="text-sm text-love-500 hover:underline font-bold"
+                          className="w-full py-4 bg-white border-2 border-love-200 text-love-500 rounded-[1.8rem] font-bold shadow-sm hover:shadow-lg hover:bg-love-50 transition-all flex items-center justify-center gap-2 group"
                         >
-                          إضافة رابط مباشر 🔗
+                           <Music size={18} className="group-hover:scale-110 transition-transform" /> 
+                           استخدمي رابط أغنية خارجي
                         </button>
-                        <span className="text-rose-200">|</span>
-                        <label className="text-sm text-love-400 cursor-pointer underline font-bold transition-colors hover:text-love-600">
-                          تغيير الملف 📁
-                          <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-                        </label>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                    <div className="text-center py-6 space-y-6">
-                      <label className="flex flex-col items-center gap-4 cursor-pointer p-8 border-4 border-dashed border-love-100 rounded-[2.5rem] hover:bg-love-50 transition-all group">
-                        <Upload size={48} className="text-love-400 group-hover:scale-110 transition-transform" />
-                        <p className="text-xl font-bold text-rose-800/70 leading-relaxed px-4">ارفعي أغنيتنا اللي بتحبي تسمعيها دلوقتي..</p>
-                        <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-                      </label>
-                      <div className="flex items-center gap-4 px-4">
-                        <div className="h-px bg-love-100 flex-1" />
-                        <span className="text-love-300 font-bold">أو</span>
-                        <div className="h-px bg-love-100 flex-1" />
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان تفضل موجودة دايماً:");
-                          if (url !== null && url.trim() !== "") {
-                            updateGlobalSetting('audioUrl', url);
-                          }
-                        }}
-                        className="w-full py-4 bg-white border-2 border-love-200 text-love-500 rounded-[1.8rem] font-bold shadow-sm hover:bg-love-50 transition-all flex items-center justify-center gap-2"
-                      >
-                         استخدمي رابط أغنية <Music size={18} />
-                      </button>
-                    </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
