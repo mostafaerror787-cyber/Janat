@@ -447,8 +447,8 @@ export default function App() {
           onClick={() => setCurrentPage('space')}
           className={`flex flex-col items-center gap-1 transition-all ${currentPage === 'space' ? 'text-love-500 scale-110' : 'text-rose-300 hover:text-love-400'}`}
         >
-          <Music size={24} />
-          <span className="text-xs font-bold font-sans">الموسيقى</span>
+          <Stars size={24} />
+          <span className="text-xs font-bold font-sans">أمنياتي</span>
         </button>
       </nav>
 
@@ -507,14 +507,14 @@ export default function App() {
               <main className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
                 <div className="glass rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center shadow-xl shadow-love-200/10 group overflow-hidden relative">
                   <div className="absolute -top-10 -left-10 w-32 h-32 bg-love-100/30 rounded-full blur-3xl group-hover:bg-love-200/40 transition-colors" />
-                  <Music className="text-love-500 w-12 h-12 mb-6 animate-bounce" />
-                  <h2 className="text-3xl md:text-5xl text-love-600 mb-4 font-bold font-amiri">أغنية بسمعها بفكر فيكي على طول.. 🎵</h2>
+                  <Stars className="text-love-500 w-12 h-12 mb-6 animate-bounce" />
+                  <h2 className="text-3xl md:text-5xl text-love-600 mb-4 font-bold font-amiri">أمنياتي ليكي ومعاكي.. ✨</h2>
                   <div className="mt-8 w-full h-1 bg-gradient-to-r from-transparent via-love-200 to-transparent" />
                   <button 
                     onClick={() => setCurrentPage('space')}
                     className="mt-6 text-sm font-bold text-love-400 hover:text-love-600 transition-colors flex items-center gap-2"
                   >
-                    اسمعي أغنيتنا من هنا.. <Music size={14} />
+                    شوفي أنا نفسي في إيه.. <Stars size={14} />
                   </button>
                 </div>
                 <div className="glass rounded-[2.5rem] p-8 flex flex-col items-center justify-center text-center shadow-xl shadow-love-200/10 relative overflow-hidden group">
@@ -546,120 +546,57 @@ export default function App() {
               className="pt-20 pb-40 px-4 max-w-4xl mx-auto"
             >
               <div className="text-center mb-12">
-                <Music className="w-12 h-12 text-love-500 mx-auto mb-4" />
-                <h2 className="text-4xl md:text-6xl text-love-600 font-bold mb-4 italic">مساحتنا الخاصة 🕊️</h2>
-                <p className="text-lg md:text-2xl text-rose-800/60 font-bold italic">هنا كل حاجة لينا وبس..</p>
+                <Stars className="w-12 h-12 text-love-500 mx-auto mb-4 animate-pulse" />
+                <h2 className="text-4xl md:text-6xl text-love-600 font-bold mb-4 italic">حاجات نفسي أعملها معاكي ❤️</h2>
+                <p className="text-lg md:text-2xl text-rose-800/60 font-bold italic">كل ثانية في خيالي بتبدأ بيكي..</p>
               </div>
 
               <div className="grid grid-cols-1 gap-12">
-                {/* Music Section */}
-                <div className="bg-white/80 border-2 border-love-100 p-8 rounded-[3rem] shadow-2xl overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-love-50 rounded-full blur-[50px] -mr-16 -mt-16 opacity-50" />
+                {/* Dreams/Wishes Section */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/80 backdrop-blur-xl border-2 border-love-100 p-10 md:p-16 rounded-[4rem] shadow-2xl overflow-hidden relative group"
+                >
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-love-50 rounded-full blur-[60px] -mr-24 -mt-24 opacity-50 transition-transform group-hover:scale-110" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-rose-50 rounded-full blur-[40px] -ml-16 -mb-16 opacity-40" />
                   
-                  <h3 className="text-3xl text-love-600 mb-8 font-bold text-center relative z-10">أغنيتنا المفضلة 🎵</h3>
-                  
-                  <div className="flex flex-col items-center gap-8 relative z-10">
-                    {audioUrl && !isUploading && (
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={togglePlay}
-                        className="w-48 h-48 rounded-full bg-love-500 text-white flex items-center justify-center shadow-2xl relative group"
-                      >
-                         <AnimatePresence>
-                           {isPlaying && (
-                             <motion.div 
-                              initial={{ scale: 1, opacity: 0.5 }}
-                              animate={{ scale: 1.5, opacity: 0 }}
-                              transition={{ repeat: Infinity, duration: 1.5 }}
-                              className="absolute inset-0 bg-love-400 rounded-full"
-                             />
-                           )}
-                         </AnimatePresence>
-                         {isPlaying ? <Pause size={64} /> : <Play size={64} className="mr-2" />}
-                         
-                         <div className="absolute -bottom-4 bg-white/90 backdrop-blur px-4 py-1 rounded-full border border-love-100 shadow-md transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
-                            <span className="text-love-500 text-xs font-bold">شغلي الموسيقى ❤️</span>
-                         </div>
-                      </motion.button>
-                    )}
-
-                    <div 
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      className={`w-full transition-all duration-300 relative ${isUploading ? 'opacity-100' : ''}`}
-                    >
-                      {isUploading ? (
-                        <div className="w-full flex flex-col items-center gap-4 py-10">
-                          <Loader2 className="w-12 h-12 text-love-500 animate-spin" />
-                          <div className="w-full max-w-sm h-3 bg-love-100 rounded-full overflow-hidden shadow-inner">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${uploadProgress}%` }}
-                              className="h-full bg-love-500"
-                            />
-                          </div>
-                          <p className="text-love-600 font-bold animate-pulse">بيتم تجهيز المفاجأة... {uploadProgress}%</p>
-                        </div>
-                      ) : (
-                        <label 
-                          className={`flex flex-col items-center gap-6 cursor-pointer p-12 border-4 border-dashed rounded-[2.5rem] transition-all relative overflow-hidden group
-                            ${isDragging ? 'border-love-500 bg-love-50 scale-[1.02]' : 'border-love-100 hover:bg-love-50/50 hover:border-love-300'}
-                          `}
-                        >
-                          <div className={`absolute inset-0 bg-love-500/5 transition-opacity ${isDragging ? 'opacity-100' : 'opacity-0'}`} />
-                          
-                          <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className={`p-6 rounded-full bg-love-50 transition-transform duration-500 ${isDragging ? 'scale-110 rotate-12' : 'group-hover:scale-110'}`}>
-                              <Upload size={48} className="text-love-400" />
-                            </div>
-                            <div className="mt-6 space-y-2">
-                              <p className="text-2xl font-bold text-rose-900 leading-relaxed">
-                                {isDragging ? 'سيبي الملف هنا يا جنات ✨' : 'اسحبي أغنيتنا هنا أو اضغطي ترفعيها'}
-                              </p>
-                              <p className="text-sm text-love-400/80 font-medium">بندعم كل أنواع ملفات الـ MP3 والموسيقى</p>
-                            </div>
-                          </div>
-                          
-                          <input 
-                            type="file" 
-                            accept="audio/*" 
-                            className="hidden" 
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleFileUpload(file);
-                            }} 
-                          />
-                        </label>
-                      )}
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="mb-8 p-6 bg-love-50 rounded-[2rem] border border-love-100 transform -rotate-2 group-hover:rotate-0 transition-transform duration-500">
+                      <Navigation size={40} className="text-love-500" />
                     </div>
-
-                    {!isUploading && (
-                      <div className="w-full flex flex-col gap-4">
-                        <div className="flex items-center gap-4 px-4">
-                          <div className="h-px bg-love-100 flex-1" />
-                          <span className="text-love-300 font-bold text-sm tracking-widest uppercase px-2">أو</span>
-                          <div className="h-px bg-love-100 flex-1" />
-                        </div>
-                        
-                        <button 
-                          onClick={() => {
-                            const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان تفضل موجودة دايماً:");
-                            if (url !== null && url.trim() !== "") {
-                              saveDirectLink(url);
-                              updateGlobalSetting('audioUrl', url);
-                            }
-                          }}
-                          className="w-full py-4 bg-white border-2 border-love-200 text-love-500 rounded-[1.8rem] font-bold shadow-sm hover:shadow-lg hover:bg-love-50 transition-all flex items-center justify-center gap-2 group"
-                        >
-                           <Music size={18} className="group-hover:scale-110 transition-transform" /> 
-                           استخدمي رابط أغنية خارجي
-                        </button>
-                      </div>
-                    )}
+                    
+                    <p className="text-3xl md:text-5xl font-bold text-rose-900 leading-[1.8] font-amiri italic">
+                      "أنـا نفسي أتمشىٰ معـاكي لحد لما أزهـق، ولو حد رن هقفـل السكة في وشه وأكمـل معـاكي.."
+                    </p>
+                    
+                    <div className="mt-12 flex items-center justify-center gap-4">
+                      <div className="h-px w-12 bg-love-200" />
+                      <Heart size={20} className="text-love-400 fill-current" />
+                      <div className="h-px w-12 bg-love-200" />
+                    </div>
+                    
+                    <motion.p 
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ repeat: Infinity, duration: 3 }}
+                      className="mt-6 text-love-400 font-bold text-sm tracking-widest"
+                    >
+                      دي أول أمنية في القائمة الطويلة اللي مستني أحققها معاكي ❤️
+                    </motion.p>
                   </div>
-                </div>
+                </motion.div>
+
+                {/* Additional Decorative Dream Card */}
+                <motion.div 
+                   initial={{ opacity: 0, y: 30 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ delay: 0.2 }}
+                   className="glass p-8 rounded-[3rem] text-center border border-white/50"
+                >
+                  <p className="text-love-600 font-bold italic text-xl">
+                    كل اللي بتمناه إنك دايماً تكوني مبسوطة وجنبي..
+                  </p>
+                </motion.div>
               </div>
             </motion.div>
           )}
