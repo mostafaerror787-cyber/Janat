@@ -116,12 +116,12 @@ export default function App() {
         const oldMsg = "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله";
         if (data.personalLetter === oldMsg) {
           setDoc(docRef, { personalLetter: personalLetter }, { merge: true })
-            .catch(err => console.error("Force update failed:", err));
+            .catch(err => console.error("Force update failed:", err instanceof Error ? err.message : String(err)));
         }
       } else {
         // Seed initial data if it doesn't exist
         setDoc(docRef, {
-          audioUrl: import.meta.env.VITE_DEFAULT_AUDIO_URL || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          audioUrl: import.meta.env.VITE_DEFAULT_AUDIO_URL || "",
           personalLetter: import.meta.env.VITE_PERSONAL_LETTER || "جنات يمكن انا بعيد عنك و حاسس انك زعلامه ان انا و انت مش بنكلم بعض بس انا عادي والله و كويس انك جنبي دلوقتي بس انا مش عاوزك تفكري افاكر وحشه في دماغك انا عاوزك تفكري ب ايام الي كنا مع بعض فيها ولا تفكري في اي حاجات في دماغك ولا عاوزك خايفه من حاجه يمكن بجد مش بنتكلم مع بعض بس بتوحشيني كل يوم و اكتر من يوم الي قبليه و هموت وعرف ولا واحده عملت معاها كدا انتي واحيده الي حبتها عاوز دي تكون في دماغك علشان ولا واحده خلتني مبسوط والله عاوزك كويسه و تكوني احسن مني و عاوزك تكوني شاطره علشان امتحانات ترم قربت ركزي و عاوزك كويسه و ليكي عندي مفاجه لو جبتي درجه حلوه مهم تعرفي انا بحبك اوييييي و بتوحشيني اويييي",
           subMessage: import.meta.env.VITE_SUB_MESSAGE || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله",
           affirmations: AFFIRMATIONS
@@ -138,7 +138,7 @@ export default function App() {
     try {
       await setDoc(docRef, { [field]: value }, { merge: true });
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'settings/global');
+      handleFirestoreError(err instanceof Error ? err.message : String(err), OperationType.UPDATE, 'settings/global');
     }
   };
 
@@ -236,7 +236,7 @@ export default function App() {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play().catch(e => console.error("Playback failed:", e));
+        audioRef.current.play().catch(e => console.error("Playback failed:", e instanceof Error ? e.message : String(e)));
       }
       setIsPlaying(!isPlaying);
     }
@@ -251,12 +251,14 @@ export default function App() {
           loop 
           onPlay={() => setIsPlaying(true)} 
           onPause={() => setIsPlaying(false)} 
-          onError={(e) => {
-            console.error("Audio playback error:", e);
-            // If it's a stale blob URL, clear it to avoid repeated errors
-            if (audioUrl.startsWith('blob:')) {
+          onError={() => {
+            // Only log or handle if we actually have a url attempting to play
+            if (audioUrl && audioUrl.length > 0) {
               setAudioUrl(null);
-              localStorage.removeItem('persistent_audio_url');
+              // If it was a blob URL, it's definitely stale/broken
+              if (audioUrl.startsWith('blob:')) {
+                localStorage.removeItem('persistent_audio_url');
+              }
             }
           }}
         />
