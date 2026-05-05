@@ -28,7 +28,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const AFFIRMATIONS = [
+const AFFIRMATIONS = import.meta.env.VITE_AFFIRMATIONS ? JSON.parse(import.meta.env.VITE_AFFIRMATIONS) : [
   "أنتي أجمل حاجة حصلت لي في حياتي.",
   "ما تخافيش من أي حاجة، أنا جنبك وهفضل دايماً سندك.",
   "ضحكتك هي اللي بتنور دنيتي، خليكي دايماً مبسوطة.",
@@ -85,7 +85,7 @@ export default function App() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [personalLetter, setPersonalLetter] = useState(() => {
-    return localStorage.getItem('personal_letter') || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله";
+    return localStorage.getItem('personal_letter') || import.meta.env.VITE_PERSONAL_LETTER || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله";
   });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -338,7 +338,7 @@ export default function App() {
                   <div className="absolute top-0 right-0 w-24 h-24 bg-love-100/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                   <Heart className="text-love-400 w-10 h-10 mb-6 drop-shadow-sm" />
                   <p className="text-2xl md:text-3xl text-rose-900 font-bold font-amiri leading-loose">
-                    انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله
+                    {import.meta.env.VITE_SUB_MESSAGE || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله"}
                   </p>
                 </div>
               </main>
