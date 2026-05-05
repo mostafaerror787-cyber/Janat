@@ -43,10 +43,20 @@ export default function App() {
   const [isEntered, setIsEntered] = useState(false);
   const [currentPage, setCurrentPage] = useState<'home' | 'space'>('home');
   const [activeAffirmation, setActiveAffirmation] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 means initial "Ready?" screen
+  const [userAnswers, setUserAnswers] = useState<string[]>(new Array(5).fill(""));
   const [fallingElements, setFallingElements] = useState<{ id: number; left: number; duration: number; size: number; type: 'heart' | 'sparkle' }[]>([]);
 
+  const QUESTIONS = [
+    "مستعدة تسمعي حاجه من قلبي بجد؟",
+    "فاكره اول مرة اتكلمنا فيها؟",
+    "بصراحه كده وحشتك ولا لا؟",
+    "اهم سوال فيهم.. لسه بتستحمليني ولا لا؟",
+    "طب بجد مستعده تسمعي مني كلام مش هزار المره دي؟"
+  ];
+
   // Music & Letter State
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(import.meta.env.VITE_DEFAULT_AUDIO_URL || null);
 
   // Initialize Audio from IndexedDB or LocalStorage
   useEffect(() => {
@@ -103,16 +113,16 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFallingElements(prev => [
-        ...prev.slice(-20),
+        ...prev.slice(-12),
         { 
           id: Date.now() + Math.random(), 
           left: Math.random() * 100, 
-          duration: Math.random() * 4 + 4,
-          size: Math.random() * 20 + 15,
+          duration: Math.random() * 5 + 6,
+          size: Math.random() * 15 + 15,
           type: Math.random() > 0.4 ? 'heart' : 'sparkle'
         }
       ]);
-    }, 800);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -192,27 +202,88 @@ export default function App() {
             className="fixed inset-0 z-[100] bg-love-50 flex flex-col items-center justify-center p-6 text-center"
           >
             <div className="absolute inset-0 z-0 opacity-20">
-               <div className="absolute top-0 left-0 w-64 h-64 bg-love-200 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
-               <div className="absolute bottom-0 right-0 w-96 h-96 bg-rose-200 rounded-full blur-[120px] translate-x-1/4 translate-y-1/4" />
+               <div className="absolute top-0 left-0 w-64 h-64 bg-love-200 rounded-full blur-[60px] -translate-x-1/2 -translate-y-1/2" />
+               <div className="absolute bottom-0 right-0 w-96 h-96 bg-rose-200 rounded-full blur-[80px] translate-x-1/4 translate-y-1/4" />
             </div>
 
-            <div className="relative z-10 space-y-10">
-              <motion.h1 
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-7xl md:text-9xl text-rose-900 font-bold font-amiri italic tracking-tighter"
-              >
-                جاهزة؟
-              </motion.h1>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEntered(true)}
-                className="px-16 py-5 bg-love-500 text-white rounded-full text-3xl font-bold shadow-2xl hover:bg-love-600 transition-all border-4 border-white/20 block mx-auto"
-              >
-                ادخلي
-              </motion.button>
+            <div className="relative z-10 space-y-10 w-full max-w-2xl px-6">
+              <AnimatePresence mode="wait">
+                {currentQuestion === -1 ? (
+                  <motion.div
+                    key="initial"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.1 }}
+                    className="space-y-10"
+                  >
+                    <h1 className="text-7xl md:text-9xl text-rose-900 font-bold font-amiri italic tracking-tighter">
+                      جاهزة؟
+                    </h1>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setCurrentQuestion(0)}
+                      className="px-16 py-5 bg-love-500 text-white rounded-full text-3xl font-bold shadow-2xl hover:bg-love-600 transition-all border-4 border-white/20 block mx-auto"
+                    >
+                      ادخلي
+                    </motion.button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={currentQuestion}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-12"
+                  >
+                    <div className="space-y-4">
+                       <p className="text-love-400 font-bold tracking-widest text-sm uppercase">سؤال رقم {currentQuestion + 1}</p>
+                       <h2 className="text-4xl md:text-6xl text-rose-900 font-bold font-amiri leading-tight">
+                         {QUESTIONS[currentQuestion]}
+                       </h2>
+                    </div>
+
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="w-full"
+                    >
+                      <textarea
+                        value={userAnswers[currentQuestion]}
+                        onChange={(e) => {
+                          const newAnswers = [...userAnswers];
+                          newAnswers[currentQuestion] = e.target.value;
+                          setUserAnswers(newAnswers);
+                        }}
+                        placeholder="اكتبي ردك هنا يا جنات..."
+                        className="w-full p-6 bg-white/50 backdrop-blur-md border-2 border-rose-100 rounded-2xl text-rose-900 font-amiri text-2xl focus:outline-none focus:border-love-300 transition-all min-h-[150px] resize-none shadow-inner"
+                      />
+                    </motion.div>
+
+                    <div className="flex flex-col md:flex-row gap-4 justify-center items-center w-full">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          if (currentQuestion < QUESTIONS.length - 1) {
+                            setCurrentQuestion(prev => prev + 1);
+                          } else {
+                            setIsEntered(true);
+                            // Optionally save answers to local storage or just keep them in state
+                            localStorage.setItem('jannat_answers', JSON.stringify(userAnswers));
+                          }
+                        }}
+                        className="px-12 py-4 bg-love-500 text-white rounded-2xl text-xl font-bold shadow-xl hover:bg-love-600 transition-all w-full md:w-64"
+                      >
+                        {currentQuestion === QUESTIONS.length - 1 ? "خلاص خلصت ❤️" : "التالي ✨"}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
