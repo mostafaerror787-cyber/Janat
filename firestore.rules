@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shared safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Settings sync
+    match /settings/global {
+      allow read: if true;
+      allow write: if true; // Simple setup for synchronization as requested
+    }
+
+    // Answers submission
+    match /interactions/{interactionId} {
+      allow create: if true;
+      allow read: if true; // Allow reading answers to verify sync
+    }
+  }
+}

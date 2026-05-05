@@ -25,6 +25,46 @@ import {
   Quote
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  getDoc,
+  serverTimestamp,
+  addDoc,
+  collection
+} from 'firebase/firestore';
+import { db } from './lib/firebase';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {}, // We are not using auth for now based on simplicity request, but function is required
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -57,6 +97,50 @@ export default function App() {
 
   // Music & Letter State
   const [audioUrl, setAudioUrl] = useState<string | null>(import.meta.env.VITE_DEFAULT_AUDIO_URL || null);
+  const [personalLetter, setPersonalLetter] = useState(import.meta.env.VITE_PERSONAL_LETTER || "جنات يمكن انا بعيد عنك و حاسس انك زعلامه ان انا و انت مش بنكلم بعض بس انا عادي والله و كويس انك جنبي دلوقتي بس انا مش عاوزك تفكري افاكر وحشه في دماغك انا عاوزك تفكري ب ايام الي كنا مع بعض فيها ولا تفكري في اي حاجات في دماغك ولا عاوزك خايفه من حاجه يمكن بجد مش بنتكلم مع بعض بس بتوحشيني كل يوم و اكتر من يوم الي قبليه و هموت وعرف ولا واحده عملت معاها كدا انتي واحيده الي حبتها عاوز دي تكون في دماغك علشان ولا واحده خلتني مبسوط والله عاوزك كويسه و تكوني احسن مني و عاوزك تكوني شاطره علشان امتحانات ترم قربت ركزي و عاوزك كويسه و ليكي عندي مفاجه لو جبتي درجه حلوه مهم تعرفي انا بحبك اوييييي و بتوحشيني اويييي");
+  const [subMessage, setSubMessage] = useState(import.meta.env.VITE_SUB_MESSAGE || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله");
+  const [affirmations, setAffirmations] = useState<string[]>(AFFIRMATIONS);
+
+  // 1. Sync App Data from Firestore
+  useEffect(() => {
+    const docRef = doc(db, 'settings', 'global');
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.audioUrl !== undefined) setAudioUrl(data.audioUrl);
+        if (data.personalLetter !== undefined) setPersonalLetter(data.personalLetter);
+        if (data.subMessage !== undefined) setSubMessage(data.subMessage);
+        if (data.affirmations !== undefined) setAffirmations(data.affirmations);
+
+        // Force upgrade if old message is detected in Firestore
+        const oldMsg = "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله";
+        if (data.personalLetter === oldMsg) {
+          setDoc(docRef, { personalLetter: personalLetter }, { merge: true })
+            .catch(err => console.error("Force update failed:", err));
+        }
+      } else {
+        // Seed initial data if it doesn't exist
+        setDoc(docRef, {
+          audioUrl: import.meta.env.VITE_DEFAULT_AUDIO_URL || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          personalLetter: import.meta.env.VITE_PERSONAL_LETTER || "جنات يمكن انا بعيد عنك و حاسس انك زعلامه ان انا و انت مش بنكلم بعض بس انا عادي والله و كويس انك جنبي دلوقتي بس انا مش عاوزك تفكري افاكر وحشه في دماغك انا عاوزك تفكري ب ايام الي كنا مع بعض فيها ولا تفكري في اي حاجات في دماغك ولا عاوزك خايفه من حاجه يمكن بجد مش بنتكلم مع بعض بس بتوحشيني كل يوم و اكتر من يوم الي قبليه و هموت وعرف ولا واحده عملت معاها كدا انتي واحيده الي حبتها عاوز دي تكون في دماغك علشان ولا واحده خلتني مبسوط والله عاوزك كويسه و تكوني احسن مني و عاوزك تكوني شاطره علشان امتحانات ترم قربت ركزي و عاوزك كويسه و ليكي عندي مفاجه لو جبتي درجه حلوه مهم تعرفي انا بحبك اوييييي و بتوحشيني اويييي",
+          subMessage: import.meta.env.VITE_SUB_MESSAGE || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله",
+          affirmations: AFFIRMATIONS
+        }).catch(err => handleFirestoreError(err, OperationType.WRITE, 'settings/global'));
+      }
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/global'));
+
+    return () => unsubscribe();
+  }, []);
+
+  // Update App Data Helpers
+  const updateGlobalSetting = async (field: string, value: any) => {
+    const docRef = doc(db, 'settings', 'global');
+    try {
+      await setDoc(docRef, { [field]: value }, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'settings/global');
+    }
+  };
 
   // Initialize Audio from IndexedDB or LocalStorage
   useEffect(() => {
@@ -94,35 +178,21 @@ export default function App() {
   }, []);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [personalLetter, setPersonalLetter] = useState(() => {
-    return localStorage.getItem('personal_letter') || import.meta.env.VITE_PERSONAL_LETTER || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله";
-  });
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem('personal_letter', personalLetter);
-  }, [personalLetter]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveAffirmation((prev) => (prev + 1) % AFFIRMATIONS.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setFallingElements(prev => [
-        ...prev.slice(-12),
+        ...prev.slice(-6),
         { 
           id: Date.now() + Math.random(), 
           left: Math.random() * 100, 
-          duration: Math.random() * 5 + 6,
-          size: Math.random() * 15 + 15,
+          duration: Math.random() * 6 + 6,
+          size: Math.random() * 15 + 10,
           type: Math.random() > 0.4 ? 'heart' : 'sparkle'
         }
       ]);
-    }, 1500);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -267,13 +337,21 @@ export default function App() {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
+                        onClick={async () => {
                           if (currentQuestion < QUESTIONS.length - 1) {
                             setCurrentQuestion(prev => prev + 1);
                           } else {
                             setIsEntered(true);
-                            // Optionally save answers to local storage or just keep them in state
-                            localStorage.setItem('jannat_answers', JSON.stringify(userAnswers));
+                            // Save answers to Firestore for persistence across devices
+                            try {
+                              await addDoc(collection(db, 'interactions'), {
+                                answers: userAnswers,
+                                timestamp: serverTimestamp()
+                              });
+                              localStorage.setItem('jannat_answers', JSON.stringify(userAnswers));
+                            } catch (err) {
+                              handleFirestoreError(err, OperationType.WRITE, 'interactions');
+                            }
                           }
                         }}
                         className="px-12 py-4 bg-love-500 text-white rounded-2xl text-xl font-bold shadow-xl hover:bg-love-600 transition-all w-full md:w-64"
@@ -340,20 +418,6 @@ export default function App() {
             >
               <section className="pt-20 pb-10 px-6 max-w-5xl mx-auto flex flex-col items-center text-center">
                 
-                <div className="w-full max-w-2xl h-24 md:h-32 flex items-center justify-center bg-white/50 backdrop-blur-lg rounded-[2rem] border-2 border-white/80 shadow-xl px-6 mb-12">
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={activeAffirmation}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="text-xl md:text-4xl text-love-600 text-center font-bold font-amiri italic transition-all duration-500"
-                    >
-                      {AFFIRMATIONS[activeAffirmation]}
-                    </motion.p>
-                  </AnimatePresence>
-                </div>
-
                 {/* Personal Letter Display on Home */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
@@ -370,7 +434,7 @@ export default function App() {
                       <button 
                         onClick={() => {
                           const newText = prompt("اكتب كلامك الجديد هنا يا بطل:", personalLetter);
-                          if (newText !== null) setPersonalLetter(newText);
+                          if (newText !== null) updateGlobalSetting('personalLetter', newText);
                         }}
                         className="w-10 h-10 rounded-full bg-love-50 flex items-center justify-center text-love-400 hover:bg-love-500 hover:text-white transition-all shadow-sm"
                         title="تعديل الرسالة"
@@ -409,8 +473,17 @@ export default function App() {
                   <div className="absolute top-0 right-0 w-24 h-24 bg-love-100/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                   <Heart className="text-love-400 w-10 h-10 mb-6 drop-shadow-sm" />
                   <p className="text-2xl md:text-3xl text-rose-900 font-bold font-amiri leading-loose">
-                    {import.meta.env.VITE_SUB_MESSAGE || "انا عارف انك بسبب اهلك مش عارفين نكلم بس انا متفهم ده يا حبيبتي والله ومبسوط علشان على الأقل أنتي معايا، بس متخفيش ولا تحسسي نفسك انك خايفه وأنا جنبك والله"}
+                    {subMessage}
                   </p>
+                  <button 
+                    onClick={() => {
+                      const newText = prompt("اكتب الكلام اللي تحت هنا يا بطل:", subMessage);
+                      if (newText !== null) updateGlobalSetting('subMessage', newText);
+                    }}
+                    className="mt-4 text-xs text-rose-300 hover:text-love-400 font-bold transition-colors"
+                  >
+                    تعديل النص السفلي 🖋️
+                  </button>
                 </div>
               </main>
 
@@ -459,7 +532,7 @@ export default function App() {
                           onClick={() => {
                             const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان متتمسحش بعد الريفرش:", audioUrl || "");
                             if (url !== null && url.trim() !== "") {
-                              saveDirectLink(url);
+                              updateGlobalSetting('audioUrl', url);
                             }
                           }}
                           className="text-sm text-love-500 hover:underline font-bold"
@@ -490,7 +563,7 @@ export default function App() {
                         onClick={() => {
                           const url = prompt("حط رابط الأغنية المباشر هنا (MP3 URL) عشان تفضل موجودة دايماً:");
                           if (url !== null && url.trim() !== "") {
-                            saveDirectLink(url);
+                            updateGlobalSetting('audioUrl', url);
                           }
                         }}
                         className="w-full py-4 bg-white border-2 border-love-200 text-love-500 rounded-[1.8rem] font-bold shadow-sm hover:bg-love-50 transition-all flex items-center justify-center gap-2"

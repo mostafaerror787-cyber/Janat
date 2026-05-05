@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global configuration for the app contents",
+      "type": "object",
+      "properties": {
+        "audioUrl": { "type": "string" },
+        "personalLetter": { "type": "string" },
+        "subMessage": { "type": "string" },
+        "affirmations": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["audioUrl", "personalLetter", "subMessage", "affirmations"]
+    },
+    "UserInteraction": {
+      "title": "User Interaction",
+      "description": "Answers from the questions flow",
+      "type": "object",
+      "properties": {
+        "answers": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["answers", "timestamp"]
+    }
+  },
+  "firestore": {
+    "settings/global": {
+      "schema": "AppSettings",
+      "description": "Global settings for the application"
+    },
+    "interactions/{interactionId}": {
+      "schema": "UserInteraction",
+      "description": "Answers submitted by users"
+    }
+  }
+}
