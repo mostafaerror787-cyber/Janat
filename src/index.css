@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-cairo: "Cairo", sans-serif;
+  --font-amiri: "Amiri", serif;
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-love-50: #fff1f2;
+  --color-love-100: #ffe4e6;
+  --color-love-200: #fecdd3;
+  --color-love-300: #fda4af;
+  --color-love-400: #fb7185;
+  --color-love-500: #f43f5e;
+  --color-love-600: #e11d48;
+}
+
+@layer base {
+  body {
+    @apply font-cairo bg-gradient-to-br from-love-50 via-white to-rose-100 text-rose-900 selection:bg-love-200 min-h-screen;
+    direction: rtl;
+  }
+}
+
+.glass {
+  @apply bg-white/60 backdrop-blur-xl border border-white/40;
+}
+
+.heart-bg {
+  background: radial-gradient(circle at center, #fff1f2 0%, #ffe4e6 100%);
+}
